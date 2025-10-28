@@ -71,8 +71,8 @@ aws-image-uploader/
 ### 🪣 1. Create Two S3 Buckets
 | Bucket Name | Purpose |
 |--------------|----------|
-| `image-upload-source` | Stores uploaded original images |
-| `image-resized-output` | Stores resized images |
+| `pranit-image-upload-source` | Stores uploaded original images |
+| `pranit-image-upload-output-20251027` | Stores resized images |
 
 ➡️ Enable **static website hosting** for your frontend bucket.
 
@@ -240,18 +240,18 @@ Go to S3 → image-upload-source → Properties → Event notifications → Add 
 
 ### 💻 6. Frontend Setup
 #### 🧠 Overview
-The frontend is a **static website** hosted on **Amazon S3** that provides a modern and interactive interface for uploading images.  
+ **Static website** hosted on **Amazon S3** that provides a modern and interactive interface for uploading images.  
 It communicates securely with **API Gateway → Lambda → S3** to upload and process files.
 
 #### ⚙️ Frontend Flow
-
+```
 1. **User selects an image** from the file picker.
 2. The frontend sends a `POST` request to **API Gateway** (`/presign` endpoint).
 3. The **Lambda function** generates a **presigned S3 URL** and returns it.
 4. The browser then performs a `PUT` request directly to **S3** using that presigned URL.
 5. The image is uploaded securely without exposing AWS credentials.
 6. The frontend shows a success message with a public link to the uploaded file.
-
+```
 
 #### 🧩 Edit Your Script
 
