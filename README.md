@@ -320,17 +320,17 @@ AWS • Cloud • DevOps Enthusiast
 
 ---
 
-### 📸 Project Screenshots
+## 📸 Project Screenshots
 
 | Step | Description | Preview |
 |------|--------------|----------|
-| 1️⃣ | **All S3 Buckets** | ![All Buckets](./img/all%20buckets.png) |
-| 2️⃣ | **IAM Policies Setup** | ![IAM Policies](./img/IAM%20policies.png) |
-| 3️⃣ | **Lambda – Image Upload Function** | ![Image Upload Lambda](./img/image%20upload%20lambda%20func.png) |
-| 4️⃣ | **Lambda – Image Resizer Function** | ![Image Resizer Lambda](./img/image%20resizer%20lambda%20func.png) |
-| 5️⃣ | **API Gateway Configuration** | ![API Gateway](./img/API.png) |
-| 6️⃣ | **Static Frontend Website** | ![Static Webpage](./img/Static%20webpage.png) |
-| 7️⃣ | **Uploaded Image in Source Bucket** | ![Uploaded Image](./img/uploaded%20img%20in%20bucket.png) |
-| 8️⃣ | **Resized Image in Output Bucket** | ![Resized Image](./img/resized%20img%20in%20bucket.png) |
-| 9️⃣ | **Frontend Success Upload Message** | ![Upload Success](./img/image%20uploaded.png) |
-| 🔟 | **Full Workflow Example** | ![Workflow Screenshot](./img/workflow daigram.png) |
+| 1️⃣ | **Project Workflow Diagram** | ![Workflow Diagram](./img/workflow%20daigram.png) |
+| 2️⃣ | **All S3 Buckets** | ![All Buckets](./img/all%20buckets.png) |
+| 3️⃣ | **IAM Policies Setup** | ![IAM Policies](./img/IAM%20policies.png) |
+| 4️⃣ | **Lambda – Image Upload Function** | ![Image Upload Lambda](./img/image%20upload%20lambda%20func.png) |
+| 5️⃣ | **Lambda – Image Resizer Function** | ![Image Resizer Lambda](./img/image%20resizer%20lambda%20func.png) |
+| 6️⃣ | **API Gateway Configuration** | ![API Gateway](./img/API.png) |
+| 7️⃣ | **Static Frontend Website** | ![Static Webpage](./img/Static%20webpage.png) |
+| 8️⃣ | **Uploaded Image in Source Bucket** | ![Uploaded Image](./img/uploaded%20img%20in%20bucket.png) |
+| 9️⃣ | **Resized Image in Output Bucket** | ![Resized Image](./img/resized%20img%20in%20bucket.png) |
+| 🔟 | **Frontend Success Upload Message** | ![Upload Success](./img/image%20uploaded.png) |
