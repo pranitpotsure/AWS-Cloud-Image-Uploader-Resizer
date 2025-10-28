@@ -102,10 +102,12 @@ Attach the following **least-privilege policy**:
   ]
 }
 ```
+---
+
 ### ⚙️ 3. Lambda Function – Upload to S3
 
 Filename: lambda_upload.py
-
+```
 import json
 import boto3
 import base64
@@ -117,7 +119,7 @@ def lambda_handler(event, context):
     try:
         file_content = base64.b64decode(event['body'])
         file_name = event['headers']['filename']
-
+        
         s3.put_object(Bucket=BUCKET_NAME, Key=file_name, Body=file_content)
 
         return {
@@ -130,24 +132,24 @@ def lambda_handler(event, context):
         }
     except Exception as e:
         return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+```
+---
 
 ### 🌐 4. API Gateway Setup
 
 Create a REST API
-
 Add a new resource: /upload
-
 Add method: POST → Integration Type: Lambda Function
-
 Enable CORS
-
 Deploy the API and note your endpoint URL
 (e.g. https://xyz123.execute-api.ap-south-1.amazonaws.com/prod/upload)
+
+---
 
 ### 🖼️ 5. Lambda Function – Image Resizer
 
 Filename: lambda_resizer.py
-
+```
 import boto3
 from PIL import Image
 import io
@@ -173,36 +175,30 @@ def lambda_handler(event, context):
         Body=buffer,
         ContentType='image/jpeg'
     )
+```
+---
 
-
-🪄 Trigger:
-Go to S3 → image-upload-source → Properties → Event notifications → Add trigger
-→ Event type: All object create events
-→ Lambda function: lambda_resizer
+#### 🪄 Trigger:
+  Go to S3 → image-upload-source → Properties → Event notifications → Add trigger
+    → Event type: All object create events
+    → Lambda function: lambda_resizer
+--- 
 
 ### 💻 6. Frontend Setup
-
 Edit your script.js:
-
 const apiUrl = "https://your-api-id.execute-api.ap-south-1.amazonaws.com/prod/upload";
-
-
 Host the frontend
 Upload index.html, CSS, JS, and icons to your S3 static website bucket.
+---
 
 ### 🌈 User Flow
-
 Open the static upload portal (S3 website URL)
-
 Select or drag-drop an image
-
 Click Upload — image goes via API Gateway → Lambda → uploaded to S3
-
 The S3 event triggers Lambda Resizer
-
 Resized image is stored in image-resized-output
-
 You can view both original and resized images via S3 URLs
+---
 
 ### 🧩 Architecture Highlights
 Layer	Service	Function
@@ -212,6 +208,7 @@ Compute	AWS Lambda	Upload + Resize logic
 Storage	S3 Buckets	Store images
 Monitoring	CloudWatch	Logs + metrics
 Security	IAM	Role-based access
+---
 
 ### 💡 Key Learnings
 Designed and deployed a serverless image pipeline
@@ -219,17 +216,20 @@ Built REST APIs using Lambda + API Gateway
 Implemented event-driven automation
 Learned IAM security and S3 permissions
 Designed a modern AWS-branded web interface
+---
 
 ### 🧠 Future Enhancements
 Add CloudFront CDN for faster delivery
 Add image format conversion (PNG/JPEG) options
 Add progress bar + image preview before upload
 Store metadata in DynamoDB
+---
 
 ### ✨ Author
 👨‍💻 Pranit Potsure
 AWS • Cloud • DevOps Enthusiast
 📫 GitHub
  | 🌐 AWS Cloud Portfolio 🚀
+---
 
 ### 📸 Preview
