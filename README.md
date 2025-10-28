@@ -56,14 +56,15 @@ aws-image-uploader/
 │
 ├── frontend/
 │ ├── index.html
+│ ├── style.css
+│ └── script.js
 │
 ├── backend/
-│ ├── lambda_upload.py
+│ ├── generate-presign.py
 │ └── lambda_resizer.py
 │
 └── README.md
 ```
-
 ---
 
 ## 🔧 Setup Guide (From Scratch)
@@ -74,7 +75,7 @@ aws-image-uploader/
 | `pranit-image-upload-source` | Stores uploaded original images |
 | `pranit-image-upload-output-20251027` | Stores resized images |
 
-➡️ Enable **static website hosting** for your frontend bucket.
+➡️ Enable **Static Website Hosting** for your frontend bucket.
 
 ---
 
@@ -90,17 +91,15 @@ Attach the following **least-privilege policy**:
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
       "Resource": [
-        "arn:aws:s3:::image-upload-source/*",
-        "arn:aws:s3:::image-resized-output/*"
+        "arn:aws:s3:::pranit-image-upload-source/*",
+        "arn:aws:s3:::pranit-image-upload-output-20251027/*"
       ]
     }
   ]
 }
 ```
 ---
-
-### ⚙️ 3. Lambda Function – Upload to S3
-
+### ⚙️ 3. Lambda Function – Upload to S3 (Presigned URL)
 Filename: generate-presign.py
 ```
 import json
@@ -113,7 +112,6 @@ def lambda_handler(event, context):
     print("EVENT:", event)
 
     try:
-        # Parse request body
         body = json.loads(event.get("body", "{}"))
         filename = body.get("filename")
         content_type = body.get("content_type")
@@ -127,9 +125,9 @@ def lambda_handler(event, context):
             Params={
                 "Bucket": BUCKET_NAME,
                 "Key": filename,
-                "ContentType": content_type,  # ✅ include this
+                "ContentType": content_type,
             },
-            ExpiresIn=300  # 5 minutes
+            ExpiresIn=300
         )
 
         return {
@@ -154,37 +152,37 @@ def lambda_handler(event, context):
             },
             "body": json.dumps({"error": str(e)})
         }
-
 ```
+
 ---
-
 ### 🌐 4. API Gateway Setup (HTTP API)
-**Type:** HTTP API (lightweight, cost-effective)  
-**Integration:** Lambda (`image-presign-lambda`)  
-**Route:** `POST /presign`  
- 
- ⚙️ CORS Settings
-- **Allow origins:** `*`
-- **Allow methods:** `OPTIONS, POST`
-- **Allow headers:** `Content-Type`
-- **Allow credentials:** ❌ Disabled
+Setting	Value
+Type	HTTP API (lightweight, cost-effective)
+Integration	Lambda (image-presign-lambda)
+Route	POST /presign
+Stage	prod
 
- 🚀 Deploy
-- **Stage:** `prod`
-- **Invoke URL:**  
-  `https://8rfuwftbnd.execute-api.ap-south-1.amazonaws.com`
+CORS Settings
 
-🧪 Test Command
-```bash
+Allow origins → https://pranit-image-web.s3.ap-south-1.amazonaws.com
+
+Allow methods → OPTIONS, POST
+
+Allow headers → Content-Type
+
+Allow credentials → ❌ Disabled
+
+Deploy URL:```https://8rfuwftbnd.execute-api.ap-south-1.amazonaws.com```
+
+Test Command:```
 curl -X POST https://8rfuwftbnd.execute-api.ap-south-1.amazonaws.com/presign \
   -H "Content-Type: application/json" \
-  -d '{"filename":"test.jpg","content_type":"image/jpeg"}'
-```
+  -d '{"filename":"test.jpg","content_type":"image/jpeg"}'```
+
+✅ Returns presigned S3 upload URL.
 
 ---
-
 ### 🖼️ 5. Lambda Function – Image Resizer
-
 Filename: lambda_resizer.py
 ```
 import boto3
@@ -195,30 +193,23 @@ import os
 s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
-    # --- S3 event info ---
     source_bucket = event['Records'][0]['s3']['bucket']['name']
     source_key = event['Records'][0]['s3']['object']['key']
 
-    # --- Target bucket (fixed name or env var) ---
     target_bucket = os.environ.get('TARGET_BUCKET', 'pranit-image-upload-output-20251027')
 
-    # --- Download image from S3 ---
     response = s3.get_object(Bucket=source_bucket, Key=source_key)
     image = Image.open(response['Body'])
 
-    # --- Resize to 300x300 ---
     image = image.resize((300, 300))
 
-    # --- Convert RGBA to RGB if needed ---
     if image.mode == 'RGBA':
         image = image.convert('RGB')
 
-    # --- Save to buffer as JPEG ---
     buffer = io.BytesIO()
     image.save(buffer, 'JPEG')
     buffer.seek(0)
 
-    # --- Upload resized image ---
     output_key = f"resized/{os.path.splitext(source_key)[0]}.jpg"
     s3.put_object(Bucket=target_bucket, Key=output_key, Body=buffer, ContentType='image/jpeg')
 
@@ -226,103 +217,106 @@ def lambda_handler(event, context):
         'statusCode': 200,
         'body': f"✅ Image resized and uploaded to {target_bucket}/{output_key}"
     }
-
+```
+🪄 Trigger Setup
+```
+S3 → pranit-image-upload-source → Properties → Event notifications → Add trigger
+Event type: All object create events
+Destination: Lambda function → lambda_resizer
 ```
 ---
-
-### 🪄 Trigger:
-```
-Go to S3 → image-upload-source → Properties → Event notifications → Add trigger
-→ Event type: All object create events
-→ Lambda function: lambda_resizer
-```
---- 
-
 ### 💻 6. Frontend Setup
-#### 🧠 Overview
- **Static website** hosted on **Amazon S3** that provides a modern and interactive interface for uploading images.  
-It communicates securely with **API Gateway → Lambda → S3** to upload and process files.
+🧠 Overview
+A static website hosted on Amazon S3 providing a modern, secure upload interface.
+It communicates with API Gateway → Lambda → S3 to upload and resize images automatically.
 
-#### ⚙️ Frontend Flow
-```
-1. **User selects an image** from the file picker.
-2. The frontend sends a `POST` request to **API Gateway** (`/presign` endpoint).
-3. The **Lambda function** generates a **presigned S3 URL** and returns it.
-4. The browser then performs a `PUT` request directly to **S3** using that presigned URL.
-5. The image is uploaded securely without exposing AWS credentials.
-6. The frontend shows a success message with a public link to the uploaded file.
-```
+⚙️ Frontend Flow
+User selects an image from the file picker.
+Frontend sends a POST request to API Gateway (/presign).
+Lambda generates a presigned S3 URL.
+Browser performs a PUT request to S3 using that URL.
+Image uploads securely — no credentials exposed.
+Success message + S3 image link displayed.
 
-#### 🧩 Edit Your Script
-
-In your `index.html` (or separate `script.js`), update your API URL:
-
-```js
-const apiUrl = "https://8rfuwftbnd.execute-api.ap-south-1.amazonaws.com/prod/presign";
-```
+🧩 Update Your Script
+```const apiUrl = "https://8rfuwftbnd.execute-api.ap-south-1.amazonaws.com/prod/presign";```
 
 ---
 
+### 🌐 Host the Frontend
+1.Open S3 → Select pranit-image-web bucket.
+2.Enable Static Website Hosting under Properties.
+ Upload:
+  index.html
+  style.css
+  script.js
+  any assets/icons
+4.Ensure objects are publicly readable.
+5.Open your static site:
+```https://pranit-image-web.s3.ap-south-1.amazonaws.com/index.html```
+
+---
 ### 🌈 User Flow
-1.Open the static upload portal (S3 website URL)
-2.Select or drag-drop an image
-3.Click Upload — image goes via API Gateway → Lambda → uploaded to S3
-4.The S3 event triggers Lambda Resizer
-5.Resized image is stored in image-resized-output
-6.You can view both original and resized images via S3 URLs
+1.Open the static upload portal.
+2.Select or drag-drop an image.
+3.Click Upload → Image goes via API Gateway → Lambda → S3.
+4.S3 triggers the Resizer Lambda.
+5.Resized image saved in pranit-image-upload-output-20251027.
+6.View both versions via public S3 URLs.
 
 ---
+### 🧩 Architecture Highlights (YAML)
+```
+Copy code
+- layer: Frontend
+  service: S3 Static Website
+  function: File upload interface
 
-### 🧩 Architecture Highlights
-  - layer: Frontend
-    service: S3 Static Website
-    function: File upload interface
+- layer: API
+  service: API Gateway
+  function: Routes requests
 
-  - layer: API
-    service: API Gateway
-    function: Routes requests
+- layer: Compute
+  service: AWS Lambda
+  function: Upload + Resize logic
 
-  - layer: Compute
-    service: AWS Lambda
-    function: Upload + Resize logic
+- layer: Storage
+  service: S3 Buckets
+  function: Store images
 
-  - layer: Storage
-    service: S3 Buckets
-    function: Store images
+- layer: Monitoring
+  service: CloudWatch
+  function: Logs + metrics
 
-  - layer: Monitoring
-    service: CloudWatch
-    function: Logs + metrics
-
-  - layer: Security
-    service: IAM
-    function: Role-based access
-
-
+- layer: Security
+  service: IAM
+  function: Role-based access
+```
 ---
-
 ### 💡 Key Learnings
-Designed and deployed a serverless image pipeline
-Built REST APIs using Lambda + API Gateway
-Implemented event-driven automation
-Learned IAM security and S3 permissions
-Designed a modern AWS-branded web interface
+
+- 🏗️ Designed and deployed a **serverless image pipeline**  
+- ⚙️ Built REST APIs using **Lambda + API Gateway**  
+- 🔄 Implemented **event-driven automation** via S3 triggers  
+- 🔒 Learned **IAM least-privilege security**  
+- 🎨 Designed a **modern AWS-branded web interface**
+
 
 ---
 
 ### 🧠 Future Enhancements
-Add CloudFront CDN for faster delivery
-Add image format conversion (PNG/JPEG) options
-Add progress bar + image preview before upload
-Store metadata in DynamoDB
+- Add CloudFront CDN for faster global access
+- Support image format conversion (PNG/JPEG)
+- Add upload progress bar + preview
+- Store image metadata in DynamoDB
 
 ---
 
 ### ✨ Author
 👨‍💻 Pranit Potsure
 AWS • Cloud • DevOps Enthusiast
-📫 GitHub
- | 🌐 AWS Cloud Portfolio 🚀
+📫 GitHub Profile
+🌐 AWS Cloud Portfolio 🚀
 
 ---
 
