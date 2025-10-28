@@ -56,12 +56,6 @@ aws-image-uploader/
 │
 ├── frontend/
 │ ├── index.html
-│ ├── style.css
-│ ├── script.js
-│ └── assets/
-│ ├── aws-s3.png
-│ ├── lambda.png
-│ ├── api-gateway.png
 │
 ├── backend/
 │ ├── lambda_upload.py
@@ -170,7 +164,7 @@ def lambda_handler(event, context):
 **Route:** `POST /presign`  
  
  ⚙️ CORS Settings
-- **Allow origins:** `https://pranit-image-web.s3.ap-south-1.amazonaws.com`
+- **Allow origins:** `*`
 - **Allow methods:** `OPTIONS, POST`
 - **Allow headers:** `Content-Type`
 - **Allow credentials:** ❌ Disabled
@@ -237,17 +231,35 @@ def lambda_handler(event, context):
 ---
 
 ### 🪄 Trigger:
+```
 Go to S3 → image-upload-source → Properties → Event notifications → Add trigger
 → Event type: All object create events
 → Lambda function: lambda_resizer
-
+```
 --- 
 
 ### 💻 6. Frontend Setup
-Edit your script.js:
-const apiUrl = "https://your-api-id.execute-api.ap-south-1.amazonaws.com/prod/upload";
-Host the frontend
-Upload index.html, CSS, JS, and icons to your S3 static website bucket.
+#### 🧠 Overview
+The frontend is a **static website** hosted on **Amazon S3** that provides a modern and interactive interface for uploading images.  
+It communicates securely with **API Gateway → Lambda → S3** to upload and process files.
+
+#### ⚙️ Frontend Flow
+
+1. **User selects an image** from the file picker.
+2. The frontend sends a `POST` request to **API Gateway** (`/presign` endpoint).
+3. The **Lambda function** generates a **presigned S3 URL** and returns it.
+4. The browser then performs a `PUT` request directly to **S3** using that presigned URL.
+5. The image is uploaded securely without exposing AWS credentials.
+6. The frontend shows a success message with a public link to the uploaded file.
+
+
+#### 🧩 Edit Your Script
+
+In your `index.html` (or separate `script.js`), update your API URL:
+
+```js
+const apiUrl = "https://8rfuwftbnd.execute-api.ap-south-1.amazonaws.com/prod/presign";
+```
 
 ---
 
