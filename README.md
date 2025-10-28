@@ -5,7 +5,7 @@
 ---
 
 ## 🏗️ Architecture Overview
-
+```
 [User Browser]
 ↓
 [S3 Static Website (Frontend)]
@@ -19,7 +19,7 @@
 [Lambda Resizer Function]
 ↓
 [S3 Resized Output Bucket]
-
+```
 
 ---
 
@@ -51,6 +51,7 @@
 ---
 
 ## 📂 Folder Structure
+```
 aws-image-uploader/
 │
 ├── frontend/
@@ -67,7 +68,7 @@ aws-image-uploader/
 │ └── lambda_resizer.py
 │
 └── README.md
-
+```
 
 ---
 
@@ -106,32 +107,60 @@ Attach the following **least-privilege policy**:
 
 ### ⚙️ 3. Lambda Function – Upload to S3
 
-Filename: lambda_upload.py
+Filename: generate-presign.py
 ```
 import json
 import boto3
-import base64
 
 s3 = boto3.client('s3')
-BUCKET_NAME = 'image-upload-source'
+BUCKET_NAME = "pranit-image-upload-source"
 
 def lambda_handler(event, context):
+    print("EVENT:", event)
+
     try:
-        file_content = base64.b64decode(event['body'])
-        file_name = event['headers']['filename']
-        
-        s3.put_object(Bucket=BUCKET_NAME, Key=file_name, Body=file_content)
+        # Parse request body
+        body = json.loads(event.get("body", "{}"))
+        filename = body.get("filename")
+        content_type = body.get("content_type")
+
+        if not filename:
+            return {"statusCode": 400, "body": json.dumps({"error": "filename required"})}
+
+        # ✅ Generate presigned URL (PUT method)
+        presigned_url = s3.generate_presigned_url(
+            "put_object",
+            Params={
+                "Bucket": BUCKET_NAME,
+                "Key": filename,
+                "ContentType": content_type,  # ✅ include this
+            },
+            ExpiresIn=300  # 5 minutes
+        )
 
         return {
-            'statusCode': 200,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({
-                'message': '✅ Upload successful!',
-                'file_url': f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_name}"
+            "statusCode": 200,
+            "headers": {
+                "Access-Control-Allow-Origin": "https://pranit-image-web.s3.ap-south-1.amazonaws.com",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type"
+            },
+            "body": json.dumps({
+                "upload_url": presigned_url,
+                "key": filename
             })
         }
+
     except Exception as e:
-        return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+        print("Error:", e)
+        return {
+            "statusCode": 500,
+            "headers": {
+                "Access-Control-Allow-Origin": "https://pranit-image-web.s3.ap-south-1.amazonaws.com"
+            },
+            "body": json.dumps({"error": str(e)})
+        }
+
 ```
 ---
 
@@ -153,35 +182,51 @@ Filename: lambda_resizer.py
 import boto3
 from PIL import Image
 import io
+import os
 
 s3 = boto3.client('s3')
 
 def lambda_handler(event, context):
+    # --- S3 event info ---
     source_bucket = event['Records'][0]['s3']['bucket']['name']
-    key = event['Records'][0]['s3']['object']['key']
-    destination_bucket = 'image-resized-output'
+    source_key = event['Records'][0]['s3']['object']['key']
 
-    img_obj = s3.get_object(Bucket=source_bucket, Key=key)
-    image = Image.open(img_obj['Body'])
+    # --- Target bucket (fixed name or env var) ---
+    target_bucket = os.environ.get('TARGET_BUCKET', 'pranit-image-upload-output-20251027')
+
+    # --- Download image from S3 ---
+    response = s3.get_object(Bucket=source_bucket, Key=source_key)
+    image = Image.open(response['Body'])
+
+    # --- Resize to 300x300 ---
     image = image.resize((300, 300))
 
+    # --- Convert RGBA to RGB if needed ---
+    if image.mode == 'RGBA':
+        image = image.convert('RGB')
+
+    # --- Save to buffer as JPEG ---
     buffer = io.BytesIO()
     image.save(buffer, 'JPEG')
     buffer.seek(0)
 
-    s3.put_object(
-        Bucket=destination_bucket,
-        Key=f"resized-{key}",
-        Body=buffer,
-        ContentType='image/jpeg'
-    )
+    # --- Upload resized image ---
+    output_key = f"resized/{os.path.splitext(source_key)[0]}.jpg"
+    s3.put_object(Bucket=target_bucket, Key=output_key, Body=buffer, ContentType='image/jpeg')
+
+    return {
+        'statusCode': 200,
+        'body': f"✅ Image resized and uploaded to {target_bucket}/{output_key}"
+    }
+
 ```
 ---
 
-#### 🪄 Trigger:
-  Go to S3 → image-upload-source → Properties → Event notifications → Add trigger
-    → Event type: All object create events
-    → Lambda function: lambda_resizer
+### 🪄 Trigger:
+Go to S3 → image-upload-source → Properties → Event notifications → Add trigger
+→ Event type: All object create events
+→ Lambda function: lambda_resizer
+
 --- 
 
 ### 💻 6. Frontend Setup
@@ -189,25 +234,45 @@ Edit your script.js:
 const apiUrl = "https://your-api-id.execute-api.ap-south-1.amazonaws.com/prod/upload";
 Host the frontend
 Upload index.html, CSS, JS, and icons to your S3 static website bucket.
+
 ---
 
 ### 🌈 User Flow
-Open the static upload portal (S3 website URL)
-Select or drag-drop an image
-Click Upload — image goes via API Gateway → Lambda → uploaded to S3
-The S3 event triggers Lambda Resizer
-Resized image is stored in image-resized-output
-You can view both original and resized images via S3 URLs
+1.Open the static upload portal (S3 website URL)
+2.Select or drag-drop an image
+3.Click Upload — image goes via API Gateway → Lambda → uploaded to S3
+4.The S3 event triggers Lambda Resizer
+5.Resized image is stored in image-resized-output
+6.You can view both original and resized images via S3 URLs
+
 ---
 
 ### 🧩 Architecture Highlights
-Layer	Service	Function
-Frontend	S3 Static Website	File upload interface
-API	API Gateway	Routes requests
-Compute	AWS Lambda	Upload + Resize logic
-Storage	S3 Buckets	Store images
-Monitoring	CloudWatch	Logs + metrics
-Security	IAM	Role-based access
+  - layer: Frontend
+    service: S3 Static Website
+    function: File upload interface
+
+  - layer: API
+    service: API Gateway
+    function: Routes requests
+
+  - layer: Compute
+    service: AWS Lambda
+    function: Upload + Resize logic
+
+  - layer: Storage
+    service: S3 Buckets
+    function: Store images
+
+  - layer: Monitoring
+    service: CloudWatch
+    function: Logs + metrics
+
+  - layer: Security
+    service: IAM
+    function: Role-based access
+
+
 ---
 
 ### 💡 Key Learnings
@@ -216,6 +281,7 @@ Built REST APIs using Lambda + API Gateway
 Implemented event-driven automation
 Learned IAM security and S3 permissions
 Designed a modern AWS-branded web interface
+
 ---
 
 ### 🧠 Future Enhancements
@@ -223,6 +289,7 @@ Add CloudFront CDN for faster delivery
 Add image format conversion (PNG/JPEG) options
 Add progress bar + image preview before upload
 Store metadata in DynamoDB
+
 ---
 
 ### ✨ Author
@@ -230,6 +297,7 @@ Store metadata in DynamoDB
 AWS • Cloud • DevOps Enthusiast
 📫 GitHub
  | 🌐 AWS Cloud Portfolio 🚀
+
 ---
 
 ### 📸 Preview
