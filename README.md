@@ -333,4 +333,4 @@ AWS • Cloud • DevOps Enthusiast
 | 7️⃣ | **Uploaded Image in Source Bucket** | ![Uploaded Image](./img/uploaded%20img%20in%20bucket.png) |
 | 8️⃣ | **Resized Image in Output Bucket** | ![Resized Image](./img/resized%20img%20in%20bucket.png) |
 | 9️⃣ | **Frontend Success Upload Message** | ![Upload Success](./img/image%20uploaded.png) |
-| 🔟 | **Full Workflow Example** | ![Workflow Screenshot](./img/Screenshot%202025-10-28%20161911.png) |
+| 🔟 | **Full Workflow Example** | ![Workflow Screenshot](img/workflow daigram.png) |
