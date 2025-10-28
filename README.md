@@ -101,8 +101,8 @@ Attach the following **least-privilege policy**:
     }
   ]
 }
-
-⚙️ 3. Lambda Function – Upload to S3
+```
+### ⚙️ 3. Lambda Function – Upload to S3
 
 Filename: lambda_upload.py
 
@@ -131,7 +131,7 @@ def lambda_handler(event, context):
     except Exception as e:
         return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
 
-🌐 4. API Gateway Setup
+### 🌐 4. API Gateway Setup
 
 Create a REST API
 
@@ -144,7 +144,7 @@ Enable CORS
 Deploy the API and note your endpoint URL
 (e.g. https://xyz123.execute-api.ap-south-1.amazonaws.com/prod/upload)
 
-🖼️ 5. Lambda Function – Image Resizer
+### 🖼️ 5. Lambda Function – Image Resizer
 
 Filename: lambda_resizer.py
 
@@ -180,7 +180,7 @@ Go to S3 → image-upload-source → Properties → Event notifications → Add 
 → Event type: All object create events
 → Lambda function: lambda_resizer
 
-💻 6. Frontend Setup
+### 💻 6. Frontend Setup
 
 Edit your script.js:
 
@@ -190,7 +190,7 @@ const apiUrl = "https://your-api-id.execute-api.ap-south-1.amazonaws.com/prod/up
 Host the frontend
 Upload index.html, CSS, JS, and icons to your S3 static website bucket.
 
-🌈 User Flow
+### 🌈 User Flow
 
 Open the static upload portal (S3 website URL)
 
@@ -204,7 +204,7 @@ Resized image is stored in image-resized-output
 
 You can view both original and resized images via S3 URLs
 
-🧩 Architecture Highlights
+### 🧩 Architecture Highlights
 Layer	Service	Function
 Frontend	S3 Static Website	File upload interface
 API	API Gateway	Routes requests
@@ -212,33 +212,24 @@ Compute	AWS Lambda	Upload + Resize logic
 Storage	S3 Buckets	Store images
 Monitoring	CloudWatch	Logs + metrics
 Security	IAM	Role-based access
-💡 Key Learnings
 
+### 💡 Key Learnings
 Designed and deployed a serverless image pipeline
-
 Built REST APIs using Lambda + API Gateway
-
 Implemented event-driven automation
-
 Learned IAM security and S3 permissions
-
 Designed a modern AWS-branded web interface
 
-🧠 Future Enhancements
-
+### 🧠 Future Enhancements
 Add CloudFront CDN for faster delivery
-
 Add image format conversion (PNG/JPEG) options
-
 Add progress bar + image preview before upload
-
 Store metadata in DynamoDB
 
-✨ Author
-
+### ✨ Author
 👨‍💻 Pranit Potsure
 AWS • Cloud • DevOps Enthusiast
 📫 GitHub
  | 🌐 AWS Cloud Portfolio 🚀
 
-📸 Preview
+### 📸 Preview
