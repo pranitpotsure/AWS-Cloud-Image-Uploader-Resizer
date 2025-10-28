@@ -166,12 +166,12 @@ def lambda_handler(event, context):
 
 ### 🌐 4. API Gateway Setup
 
-Create a REST API
-Add a new resource: /upload
-Add method: POST → Integration Type: Lambda Function
-Enable CORS
-Deploy the API and note your endpoint URL
-(e.g. https://xyz123.execute-api.ap-south-1.amazonaws.com/prod/upload)
+1.Create a REST API
+2.Add a new resource: /upload
+3.Add method: POST → Integration Type: Lambda Function
+4.Enable CORS
+5.Deploy the API and note your endpoint URL
+ (e.g. https://xyz123.execute-api.ap-south-1.amazonaws.com/prod/upload)
 
 ---
 
