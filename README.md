@@ -164,14 +164,28 @@ def lambda_handler(event, context):
 ```
 ---
 
-### 🌐 4. API Gateway Setup
+### 🌐 4. API Gateway Setup (HTTP API)
+**Type:** HTTP API (lightweight, cost-effective)  
+**Integration:** Lambda (`image-presign-lambda`)  
+**Route:** `POST /presign`  
+ 
+ ⚙️ CORS Settings
+- **Allow origins:** `https://pranit-image-web.s3.ap-south-1.amazonaws.com`
+- **Allow methods:** `OPTIONS, POST`
+- **Allow headers:** `Content-Type`
+- **Allow credentials:** ❌ Disabled
 
-1.Create a REST API
-2.Add a new resource: /upload
-3.Add method: POST → Integration Type: Lambda Function
-4.Enable CORS
-5.Deploy the API and note your endpoint URL
- (e.g. https://xyz123.execute-api.ap-south-1.amazonaws.com/prod/upload)
+ 🚀 Deploy
+- **Stage:** `prod`
+- **Invoke URL:**  
+  `https://8rfuwftbnd.execute-api.ap-south-1.amazonaws.com`
+
+🧪 Test Command
+```bash
+curl -X POST https://8rfuwftbnd.execute-api.ap-south-1.amazonaws.com/presign \
+  -H "Content-Type: application/json" \
+  -d '{"filename":"test.jpg","content_type":"image/jpeg"}'
+```
 
 ---
 
